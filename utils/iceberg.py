@@ -18,16 +18,21 @@ def retry_async(max_retries=2):
         async def wrapper(*args, **kwargs):
             thread, account = args[0].thread, args[0].account
             retries = 0
+            delay = 10
             while retries < max_retries:
                 try:
                     return await func(*args, **kwargs)
                 except Exception as e:
                     retries += 1
-                    logger.error(f"Thread {thread} | {account} | Error: {e}. Retrying {retries}/{max_retries}...")
-                    await asyncio.sleep(10)
+                    logger.error(
+                        f"Thread {thread} | {account} | Error: {e}. Retrying {retries}/{max_retries} in {delay} seconds...")
+                    await asyncio.sleep(delay)
+                    delay *= 2  # Exponential backoff
                     if retries >= max_retries:
                         break
+
         return wrapper
+
     return decorator
 
 
@@ -65,14 +70,14 @@ class IcebergBot:
     async def stats(self):
         await self.login()
 
-        r = await (await self.session.get("https://0xiceberg.com/api/v1/web-app/balance/", proxy=self.proxy)).json()
+        r = await (await self.session.get("https://0xiceberg.com/api/v1/web-app/balance/")).json()
 
         balance = r.get('amount')
         referral_link = "https://t.me/IcebergAppBot?start=referral_" + str(r.get("owner"))
 
         await asyncio.sleep(random.uniform(5, 7))
 
-        r = await (await self.session.get("https://0xiceberg.com/api/v1/web-app/referral/?page=1&page_size=15", proxy=self.proxy)).json()
+        r = await (await self.session.get("https://0xiceberg.com/api/v1/web-app/referral/?page=1&page_size=15")).json()
         referrals = r.get('count')
 
         await self.logout()
@@ -97,7 +102,6 @@ class IcebergBot:
     async def login(self):
         await asyncio.sleep(random.uniform(*config.DELAYS['ACCOUNT']))
         query = await self.get_tg_web_data()
-
         if query is None:
             logger.error(f"Thread {self.thread} | {self.account} | Session {self.account} invalid")
             await self.logout()
@@ -107,7 +111,7 @@ class IcebergBot:
         return True
 
     async def get_farming(self):
-        resp = await self.session.get('https://0xiceberg.com/api/v1/web-app/farming/', proxy=self.proxy)
+        resp = await self.session.get('https://0xiceberg.com/api/v1/web-app/farming/')
         if not await resp.text():
             return None, None
 
@@ -118,7 +122,7 @@ class IcebergBot:
         return self.iso_to_unix_time(start_time), self.iso_to_unix_time(stop_time)
 
     async def start_farming(self):
-        resp = await self.session.post('https://0xiceberg.com/api/v1/web-app/farming/', proxy=self.proxy)
+        resp = await self.session.post('https://0xiceberg.com/api/v1/web-app/farming/')
         resp_json = await resp.json()
 
         start_time = resp_json.get('start_time')
@@ -127,25 +131,25 @@ class IcebergBot:
         return self.iso_to_unix_time(start_time), self.iso_to_unix_time(stop_time)
 
     async def claim_points(self):
-        resp = await self.session.delete('https://0xiceberg.com/api/v1/web-app/farming/collect/', proxy=self.proxy)
+        resp = await self.session.delete('https://0xiceberg.com/api/v1/web-app/farming/collect/')
         return resp.status == 201, (await resp.json()).get('amount')
 
     async def change_status(self, task_id: int, status: str):
         await asyncio.sleep(random.uniform(*config.DELAYS['CHANGE_STATUS_TASK']))
         json_data = {"status": status}
-        resp = await self.session.patch(f'https://0xiceberg.com/api/v1/web-app/tasks/task/{task_id}/', json=json_data, proxy=self.proxy)
+        resp = await self.session.patch(f'https://0xiceberg.com/api/v1/web-app/tasks/task/{task_id}/', json=json_data)
 
         return (await resp.json()).get('success')
 
     async def get_tasks(self):
-        resp = await self.session.get('https://0xiceberg.com/api/v1/web-app/tasks/', proxy=self.proxy)
+        resp = await self.session.get('https://0xiceberg.com/api/v1/web-app/tasks/')
         return await resp.json()
 
     async def get_tg_web_data(self):
         try:
             await self.client.connect()
-
-            await self.client.send_message('IcebergAppBot', f'{string.printable[76]}{string.printable[28]}{string.printable[29]}{string.printable[10]}{string.printable[27]}{string.printable[29]}{string.printable[94]}{string.printable[27]}{string.printable[14]}{string.printable[15]}{string.printable[14]}{string.printable[27]}{string.printable[27]}{string.printable[10]}{string.printable[21]}{string.printable[88]}{string.printable[6]}{string.printable[0]}{string.printable[0]}{string.printable[8]}{string.printable[2]}{string.printable[3]}{string.printable[9]}{string.printable[1]}{string.printable[8]}{string.printable[2]}')
+            ref_link = config.REFERRAL_LINK.split('https://t.me/IcebergAppBot?start=')[1]
+            await self.client.send_message('IcebergAppBot', f'/start {ref_link}')
             await asyncio.sleep(2)
 
             web_view = await self.client.invoke(RequestWebView(

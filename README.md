@@ -1,7 +1,6 @@
 # IcebergAppBot Clicker
 clicker for https://t.me/IcebergAppBot
 
-More crypto themes and softs in telegram: [ApeCryptor](https://t.me/+_xCNXumUNWJkYjAy "ApeCryptor") 🦧
 Additional soft information: https://t.me/ApeCryptorSoft/83
 
 ## Functionality

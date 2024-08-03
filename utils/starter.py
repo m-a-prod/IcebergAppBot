@@ -12,7 +12,6 @@ import os
 async def start(thread: int, session_name: str, phone_number: str, proxy: [str, None]):
     iceberg = IcebergBot(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)
     account = session_name + '.session'
-
     if await iceberg.login():
         while True:
             try:

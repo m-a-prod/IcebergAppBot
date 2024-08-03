@@ -8,7 +8,6 @@ import os
 
 
 async def main():
-    print("Soft's author: https://t.me/ApeCryptor\n")
     action = int(input("Select action:\n0. About soft\n1. Start soft\n2. Get statistics\n3. Create sessions\n\n> "))
 
     if action == 0:
@@ -34,7 +33,6 @@ async def main():
 
     if action == 1:
         accounts = await Accounts().get_accounts()
-
         tasks = []
 
         if config.PROXY['USE_PROXY_FROM_FILE']:
@@ -42,11 +40,13 @@ async def main():
             for thread, (account, proxy) in enumerate(zip_longest(accounts, proxys)):
                 if not account: break
                 session_name, phone_number, proxy = account.values()
-                tasks.append(asyncio.create_task(start(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
+                tasks.append(asyncio.create_task(
+                    start(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
         else:
             for thread, account in enumerate(accounts):
                 session_name, phone_number, proxy = account.values()
-                tasks.append(asyncio.create_task(start(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
+                tasks.append(asyncio.create_task(
+                    start(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)))
 
         await asyncio.gather(*tasks)
 
